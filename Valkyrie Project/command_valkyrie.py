@@ -27,13 +27,12 @@ password = input('Enter the password: ')
 secret = None
 
 
-
 # Switch IP addresses from text file that has one IP per line
 ip_addrs_file = open('ips.txt', encoding='UTF-8')
 ip_addrs = ip_addrs_file.read().splitlines()
 
 # List of commands to run split by line
-commands_file = open('commands_short.txt', encoding='UTF-8')
+commands_file = open('commands.txt', encoding='UTF-8')
 commands = commands_file.read().splitlines()
 
 # TODO Move this section such that folder creation does not occur if script fails
@@ -61,7 +60,7 @@ def deviceconnector(i, q):
         ip = q.get()
         print("Thread {}/{}: Acquired IP: {}".format(i+1, num_threads, ip))
 
-        # k,v passed to net_connect
+        # device_dict is copied over to net_connect
         device_dict = {
             'host': ip,
             'username': username,
