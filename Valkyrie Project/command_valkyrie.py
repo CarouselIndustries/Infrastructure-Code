@@ -8,7 +8,6 @@
 # TODO Handle enable account for Cisco devices.
 
 
-# from netmiko import SSHDetect
 import os
 import signal
 import sys
@@ -17,6 +16,7 @@ from datetime import datetime
 from queue import Queue
 
 from netmiko import Netmiko, NetMikoTimeoutException, NetMikoAuthenticationException
+from netmiko import SSHDetect
 
 # These capture errors relating to hitting ctrl+C
 signal.signal(signal.SIGINT, signal.SIG_DFL)  # KeyboardInterrupt: Ctrl-C
