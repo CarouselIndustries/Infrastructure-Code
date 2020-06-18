@@ -67,13 +67,22 @@ def deviceconnector(i, q):
             'username': username,
             'password': password,
             'secret': secret,
-            'device_type': 'cisco_ios'
+            'device_type': 'autodetect'
         }
+
+        # device type autodetect based on netmiko
+        auto_device_dict = SSHDetect(**device_dict)
+        device_os = auto_device_dict.autodetect()
+        # print(device_os)
+        # print(auto_device_dict.potential_matches)
+
+        # Update device_dict device_type from 'autodetect' to the detected OS
+        device_dict['device_type'] = device_os
 
         # Connect to the device, and print out auth or timeout errors
         try:
             net_connect = Netmiko(**device_dict)
-            print('Connecting to ' + net_connect.host)
+            print('Connecting to:  ' + net_connect.host + ' (' + device_os + ')')
 
         except NetMikoTimeoutException:
             with print_lock:
@@ -89,9 +98,10 @@ def deviceconnector(i, q):
 
         # Capture the output, and use TextFSM to parse data
         find_hostname = net_connect.find_prompt()
+
         # TODO Change translate to replace
         hostname = find_hostname.rstrip('#>')
-        print('Associated IP: ' + ip + ' with the hostname of: ' + hostname)
+        print('Associated IP: ' + ip + '; Hostname: ' + hostname)
         # echo_hostname = net_connect.find_prompt()
         # output2 = net_connect.send_command(command, use_textfsm=False)
 
