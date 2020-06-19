@@ -96,7 +96,8 @@ def deviceconnector(i, q):
             # CLosing the process via os.kill - UNIX only?
             # os.kill(os.getpid(), signal.SIGUSR1)
 
-        # Capture the output, and use TextFSM to parse data
+        # Capture the output
+        # TODO TextFSM to parse data
         find_hostname = net_connect.find_prompt()
 
         # TODO Change translate to replace
