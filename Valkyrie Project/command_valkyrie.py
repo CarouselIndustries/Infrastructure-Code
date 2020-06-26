@@ -3,12 +3,15 @@
 # https://github.com/CarouselIndustries/Infrastructure-Code
 
 # DESCRIPTION
-# The goal is to pull output from various SSH devices. Ideally threading and device autodetection is leveraged to gather
-# relevant information. Authentication via prompt
+# The goal is to pull output from various SSH devices. Threading and device autodetection
+# is leveraged to gather relevant information.
+# Authentication via prompt
 # TODO Handle enable account for Cisco devices.
 
 
 import os
+import json
+import requests
 import signal
 import sys
 import threading
@@ -42,15 +45,17 @@ os.makedirs('valkyrie output', exist_ok=True)
 
 # Set up thread count for number of threads to spin up.
 num_threads = 5
-
 # This sets up the queue
 enclosure_queue = Queue()
-
 # Set up thread lock so that only one thread prints at a time
 print_lock = threading.Lock()
 
 print('*****\nInitiating Valkyrie process...\n*****')
 
+# Fun Chuck Norris Joke at completion
+url = 'https://api.chucknorris.io/jokes/random'
+cn_resp = requests.get(url=url, headers={'Content-Type': 'application/json'})
+cn_joke = json.loads(cn_resp.text)
 
 # Function used in threads to connect to devices, passing in the thread # and queue
 def deviceconnector(i, q):
@@ -82,7 +87,7 @@ def deviceconnector(i, q):
         # Connect to the device, and print out auth or timeout errors
         try:
             net_connect = Netmiko(**device_dict)
-            print('Connecting to:  ' + net_connect.host + ' (' + device_os + ')')
+            print('Connecting to: ' + net_connect.host + ' (' + device_os + ')')
 
         except NetMikoTimeoutException:
             with print_lock:
@@ -98,13 +103,11 @@ def deviceconnector(i, q):
 
         # Capture the output
         # TODO TextFSM to parse data
-        find_hostname = net_connect.find_prompt()
 
-        # TODO Change translate to replace
+        # create two variables - one of hostname and the prompt level and another with just the hostname
+        find_hostname = net_connect.find_prompt()
         hostname = find_hostname.rstrip('#>')
         print('Associated IP: ' + ip + '; Hostname: ' + hostname)
-        # echo_hostname = net_connect.find_prompt()
-        # output2 = net_connect.send_command(command, use_textfsm=False)
 
         # TODO Write file to a optional, specified folder
         with print_lock:
@@ -114,10 +117,9 @@ def deviceconnector(i, q):
             print('Writing file name ' + hostname + ' ' + ip + ' - valkyrie output ' + format(timenow) + '.txt')
 
             for cmd in commands:
-            # TODO Ignore line in commands with a comment '!' at the start; print the comment but not instantiate NetMiko
+            # TODO Ignore blank lines or lines starting with '!'; print the comment but not instantiate NetMiko
                 output = net_connect.send_command(cmd.strip(), delay_factor=1, max_loops=50)
-            # output = net_connect.send_config_set(commands)
-            # Notify write output to file
+                # Write output to file
                 serial_outputfile.write((find_hostname + '\n') * 3)
                 serial_outputfile.write(find_hostname + cmd + '\n')
                 serial_outputfile.write(output + '\n')
@@ -133,8 +135,6 @@ def deviceconnector(i, q):
 
 
 def main():
-
-
     # Setting up threads based on number set above
     for i in range(num_threads):
         # Create the thread using 'deviceconnector' as the function, passing in
@@ -153,7 +153,7 @@ def main():
     enclosure_queue.join()
     # serial_outputfile.close()
     print("*****\nCompleting Valkyrie process...\n*****")
-
+    print(cn_joke['value'])
 
 if __name__ == '__main__':
     try:
