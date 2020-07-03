@@ -1,0 +1,6 @@
+show run
+show version
+show license host-id
+show license usage
+show hsrp brief
+show logging last 500
