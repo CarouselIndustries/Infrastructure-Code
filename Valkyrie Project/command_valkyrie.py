@@ -140,15 +140,6 @@ def deviceconnector(i, q):
             outfile_file(serial_outputfile, find_hostname, cmd, output)
             print('Device returned no valid device_type - ran "show tech"')
 
-        for cmd in commands:
-        # TODO Ignore blank lines or lines starting with '!'; print the comment but not instantiate NetMiko
-            output = net_connect.send_command(cmd.strip(), delay_factor=1, max_loops=50)
-            # Write output to file
-            outfile_file(serial_outputfile, find_hostname, cmd, output)
-            #serial_outputfile.write((find_hostname + '\n') * 3)
-            #serial_outputfile.write(find_hostname + cmd + '\n')
-            #serial_outputfile.write(output + '\n')
-
         # Disconnect from device
         net_connect.disconnect()
 
@@ -160,8 +151,7 @@ def deviceconnector(i, q):
         q.task_done()
 
 def outfile_file(serial_outputfile, find_hostname, cmd, output):
-    # Takes in variables (serial_outputfile, find_hostname, cmd, output)
-    # Writes output to file
+    # Takes in variables (serial_outputfile, find_hostname, cmd, output) and writes output to file
     serial_outputfile.write((find_hostname + '\n') * 3)
     serial_outputfile.write(find_hostname + cmd + '\n')
     serial_outputfile.write(output + '\n')
