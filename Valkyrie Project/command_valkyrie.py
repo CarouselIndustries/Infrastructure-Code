@@ -110,19 +110,20 @@ def deviceconnector(i, q):
         print('Associated IP: ' + ip + '; Hostname: ' + hostname)
 
         # TODO Write file to a optional, specified folder
-        with print_lock:
-            timenow = '{:%Y-%m-%d %H_%M_%S}'.format(datetime.now())
-            filename = (hostname + ' ' + ip + ' - valkyrie output {0}.txt')
-            serial_outputfile = open('valkyrie output/' + filename.format(timenow), 'w')
-            print('Writing file name ' + hostname + ' ' + ip + ' - valkyrie output ' + format(timenow) + '.txt')
+        # with print_lock:
+        timenow = '{:%Y-%m-%d %H_%M_%S}'.format(datetime.now())
+        filename = (hostname + ' ' + ip + ' - valkyrie output {0}.txt')
+        serial_outputfile = open('valkyrie output/' + filename.format(timenow), 'w')
+        print('Writing file name ' + hostname + ' ' + ip + ' - valkyrie output ' + format(timenow) + '.txt')
 
-            for cmd in commands:
-            # TODO Ignore blank lines or lines starting with '!'; print the comment but not instantiate NetMiko
-                output = net_connect.send_command(cmd.strip(), delay_factor=1, max_loops=50)
-                # Write output to file
-                serial_outputfile.write((find_hostname + '\n') * 3)
-                serial_outputfile.write(find_hostname + cmd + '\n')
-                serial_outputfile.write(output + '\n')
+        for cmd in commands:
+        # TODO Ignore blank lines or lines starting with '!'; print the comment but not instantiate NetMiko
+            output = net_connect.send_command(cmd.strip(), delay_factor=1, max_loops=50)
+            # Write output to file
+            outfile_file(serial_outputfile, find_hostname, cmd, output)
+            #serial_outputfile.write((find_hostname + '\n') * 3)
+            #serial_outputfile.write(find_hostname + cmd + '\n')
+            #serial_outputfile.write(output + '\n')
 
         # Disconnect from device
         net_connect.disconnect()
@@ -133,6 +134,11 @@ def deviceconnector(i, q):
         # Set the queue task as complete, thereby removing it from the queue indefinitely
         q.task_done()
 
+def outfile_file(serial_outputfile, find_hostname, cmd, output):
+    # takes in variables (serial_outputfile, find_hostname, cmd, output)
+    serial_outputfile.write((find_hostname + '\n') * 3)
+    serial_outputfile.write(find_hostname + cmd + '\n')
+    serial_outputfile.write(output + '\n')
 
 def main():
     # Setting up threads based on number set above
