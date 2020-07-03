@@ -20,6 +20,8 @@ from queue import Queue
 
 from netmiko import Netmiko, NetMikoTimeoutException, NetMikoAuthenticationException
 from netmiko import SSHDetect
+from paramiko import ssh_exception
+
 
 # These capture errors relating to hitting ctrl+C
 signal.signal(signal.SIGINT, signal.SIG_DFL)  # KeyboardInterrupt: Ctrl-C
@@ -36,8 +38,11 @@ ip_addrs_file = open('ips.txt', encoding='UTF-8')
 ip_addrs = ip_addrs_file.read().splitlines()
 
 # List of commands to run split by line
-commands_file = open('commands.txt', encoding='UTF-8')
+commands_file = open('commands_short.txt', encoding='UTF-8')
 commands = commands_file.read().splitlines()
+
+commands_nexus_file = open('commands_nexus.txt', encoding='UTF-8')
+commands_nexus = commands_nexus_file.read().splitlines()
 
 # TODO Move this section such that folder creation does not occur if script fails
 # Define the output folder
@@ -64,7 +69,7 @@ def deviceconnector(i, q):
     while True:
 
         ip = q.get()
-        print("Thread {}/{}: Acquired IP: {}".format(i+1, num_threads, ip))
+        print('Thread {}/{}: Acquired IP: {}'.format(i+1, num_threads, ip))
 
         # device_dict is copied over to net_connect
         device_dict = {
@@ -78,27 +83,37 @@ def deviceconnector(i, q):
         # device type autodetect based on netmiko
         auto_device_dict = SSHDetect(**device_dict)
         device_os = auto_device_dict.autodetect()
-        # print(device_os)
+        # print('##### Found device type: ' + str(device_os) + ' #####')
         # print(auto_device_dict.potential_matches)
 
         # Update device_dict device_type from 'autodetect' to the detected OS
-        device_dict['device_type'] = device_os
+        if device_os == None:
+            print( 'Thread {}/{}: '.format(i+1, num_threads) + device_dict['host'] \
+                   + ' returned device_type of: ' + device_dict['device_type'] + '\n')
+            device_dict['device_type'] = 'autodetect'
+        else:
+            device_dict['device_type'] = device_os
 
         # Connect to the device, and print out auth or timeout errors
         try:
             net_connect = Netmiko(**device_dict)
-            print('Connecting to: ' + net_connect.host + ' (' + device_os + ')')
-
+            print('Connecting to: ' + net_connect.host + ' (' + device_dict['device_type'] + ')')
         except NetMikoTimeoutException:
             with print_lock:
-                print("\n{}: ERROR: Connection to {} timed-out.\n".format(i, ip))
+                print('\n{}: ERROR: Connection to {} timed-out. \n'.format(i, ip))
             q.task_done()
             continue
         except NetMikoAuthenticationException:
             with print_lock:
                 print('\n{}: ERROR: Authentication failed for {}. Stopping thread. \n'.format(i, ip))
             q.task_done()
-            # CLosing the process via os.kill - UNIX only?
+            continue
+        except ssh_exception.NoValidConnectionsError:
+            with print_lock:
+                print('\n{}: ERROR: No valid connection for {}. Stopping thread. \n'.format(i, ip))
+            q.task_done()
+            continue
+            # Closing the process via os.kill - UNIX only?
             # os.kill(os.getpid(), signal.SIGUSR1)
 
         # Capture the output
@@ -116,13 +131,30 @@ def deviceconnector(i, q):
             serial_outputfile = open('valkyrie output/' + filename.format(timenow), 'w')
             print('Writing file name ' + hostname + ' ' + ip + ' - valkyrie output ' + format(timenow) + '.txt')
 
-            for cmd in commands:
-            # TODO Ignore blank lines or lines starting with '!'; print the comment but not instantiate NetMiko
+            if device_os == 'cisco_ios':
+                for cmd in commands:
+                # TODO Ignore blank lines or lines starting with '!'; print the comment but not instantiate NetMiko
+                    output = net_connect.send_command(cmd.strip(), delay_factor=1, max_loops=50)
+                    # Write output to file
+                    serial_outputfile.write((find_hostname + '\n') * 3)
+                    serial_outputfile.write(find_hostname + cmd + '\n')
+                    serial_outputfile.write(output + '\n')
+            elif device_os == 'cisco_nxos':
+                for cmd in commands_nexus:
+                # TODO Ignore blank lines or lines starting with '!'; print the comment but not instantiate NetMiko
+                    output = net_connect.send_command(cmd.strip(), delay_factor=1, max_loops=50)
+                    # Write output to file
+                    serial_outputfile.write((find_hostname + '\n') * 3)
+                    serial_outputfile.write(find_hostname + cmd + '\n')
+                    serial_outputfile.write(output + '\n')
+            else:
+                cmd = 'show tech'
                 output = net_connect.send_command(cmd.strip(), delay_factor=1, max_loops=50)
                 # Write output to file
                 serial_outputfile.write((find_hostname + '\n') * 3)
                 serial_outputfile.write(find_hostname + cmd + '\n')
                 serial_outputfile.write(output + '\n')
+                print('Device returned no valid device_type - ran "show tech"')
 
         # Disconnect from device
         net_connect.disconnect()
@@ -131,6 +163,7 @@ def deviceconnector(i, q):
         serial_outputfile.close()
 
         # Set the queue task as complete, thereby removing it from the queue indefinitely
+        print("Thread {}/{}: Completed".format(i+1, num_threads))
         q.task_done()
 
 
