@@ -39,6 +39,9 @@ ip_addrs = ip_addrs_file.read().splitlines()
 commands_file = open('commands.txt', encoding='UTF-8')
 commands = commands_file.read().splitlines()
 
+commands_nexus_file = open('commands_nexus.txt', encoding='UTF-8')
+commands_nexus = commands_nexus_file.read().splitlines()
+
 # TODO Move this section such that folder creation does not occur if script fails
 # Define the output folder
 os.makedirs('valkyrie output', exist_ok=True)
@@ -64,7 +67,7 @@ def deviceconnector(i, q):
     while True:
 
         ip = q.get()
-        print("Thread {}/{}: Acquired IP: {}".format(i+1, num_threads, ip))
+        print('Thread {}/{}: Acquired IP: {}'.format(i+1, num_threads, ip))
 
         # device_dict is copied over to net_connect
         device_dict = {
@@ -82,23 +85,28 @@ def deviceconnector(i, q):
         # print(auto_device_dict.potential_matches)
 
         # Update device_dict device_type from 'autodetect' to the detected OS
-        device_dict['device_type'] = device_os
+        if device_os == None:
+            print( 'Thread {}/{}: '.format(i+1, num_threads) + device_dict['host'] \
+                   + ' returned device_type of: ' + device_dict['device_type'] + '\n')
+            device_dict['device_type'] = 'autodetect'
+        else:
+            device_dict['device_type'] = device_os
 
         # Connect to the device, and print out auth or timeout errors
         try:
             net_connect = Netmiko(**device_dict)
-            print('Connecting to: ' + net_connect.host + ' (' + device_os + ')')
+            print('Connecting to: ' + net_connect.host + ' (' + device_dict['device_type'] + ')')
 
         except NetMikoTimeoutException:
             with print_lock:
-                print("\n{}: ERROR: Connection to {} timed-out.\n".format(i, ip))
+                print('\n{}: ERROR: Connection to {} timed-out. \n'.format(i, ip))
             q.task_done()
             continue
         except NetMikoAuthenticationException:
             with print_lock:
                 print('\n{}: ERROR: Authentication failed for {}. Stopping thread. \n'.format(i, ip))
             q.task_done()
-            # CLosing the process via os.kill - UNIX only?
+            # Closing the process via os.kill - UNIX only?
             # os.kill(os.getpid(), signal.SIGUSR1)
 
         # Capture the output
@@ -116,6 +124,22 @@ def deviceconnector(i, q):
         serial_outputfile = open('valkyrie output/' + filename.format(timenow), 'w')
         print('Writing file name ' + hostname + ' ' + ip + ' - valkyrie output ' + format(timenow) + '.txt')
 
+        if device_os == 'cisco_ios':
+            for cmd in commands:
+                # TODO Ignore blank lines or lines starting with '!'; print the comment but not instantiate NetMiko
+                output = net_connect.send_command(cmd.strip(), delay_factor=1, max_loops=50)
+                outfile_file(serial_outputfile, find_hostname, cmd, output)
+        elif device_os == 'cisco_nxos':
+            for cmd in commands_nexus:
+                # TODO Ignore blank lines or lines starting with '!'; print the comment but not instantiate NetMiko
+                output = net_connect.send_command(cmd.strip(), delay_factor=1, max_loops=50)
+                outfile_file(serial_outputfile, find_hostname, cmd, output)
+        else:
+            cmd = 'show tech'
+            output = net_connect.send_command(cmd.strip(), delay_factor=1, max_loops=50)
+            outfile_file(serial_outputfile, find_hostname, cmd, output)
+            print('Device returned no valid device_type - ran "show tech"')
+
         for cmd in commands:
         # TODO Ignore blank lines or lines starting with '!'; print the comment but not instantiate NetMiko
             output = net_connect.send_command(cmd.strip(), delay_factor=1, max_loops=50)
@@ -132,10 +156,12 @@ def deviceconnector(i, q):
         serial_outputfile.close()
 
         # Set the queue task as complete, thereby removing it from the queue indefinitely
+        print("Thread {}/{}: Completed".format(i+1, num_threads))
         q.task_done()
 
 def outfile_file(serial_outputfile, find_hostname, cmd, output):
-    # takes in variables (serial_outputfile, find_hostname, cmd, output)
+    # Takes in variables (serial_outputfile, find_hostname, cmd, output)
+    # Writes output to file
     serial_outputfile.write((find_hostname + '\n') * 3)
     serial_outputfile.write(find_hostname + cmd + '\n')
     serial_outputfile.write(output + '\n')
