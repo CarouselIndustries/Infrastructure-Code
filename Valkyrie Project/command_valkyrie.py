@@ -36,10 +36,10 @@ ip_addrs_file = open('ips.txt', encoding='UTF-8')
 ip_addrs = ip_addrs_file.read().splitlines()
 
 # List of commands to run split by line
-commands_file = open('commands.txt', encoding='UTF-8')
+commands_file = open('commands_cisco_ios.txt', encoding='UTF-8')
 commands = commands_file.read().splitlines()
 
-commands_nexus_file = open('commands_nexus.txt', encoding='UTF-8')
+commands_nexus_file = open('commands_cisco_nexus.txt', encoding='UTF-8')
 commands_nexus = commands_nexus_file.read().splitlines()
 
 # TODO Move this section such that folder creation does not occur if script fails
