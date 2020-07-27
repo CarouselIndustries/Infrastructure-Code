@@ -2,3 +2,4 @@ show run
 show version
 show license
 show clock
+show inventory
