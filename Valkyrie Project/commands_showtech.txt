@@ -1,0 +1,6 @@
+show tech
+#FortiGate
+config system console
+set output standard
+end
+show full-configuration
