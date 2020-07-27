@@ -80,9 +80,9 @@ def deviceconnector(i, q):
             'password': password,
             'secret': secret,
             'device_type': 'autodetect'
-            ,
-            # Gather session output logs
-            'session_log': 'session_output.txt'
+            # Gather session output logs - TESTING ONLY
+            # ,
+            # 'session_log': 'session_output.txt'
         }
 
         # device type autodetect based on netmiko
@@ -145,15 +145,8 @@ def deviceconnector(i, q):
         else:
             for cmd in commands_showtech:
                 # TODO Ignore blank lines or lines starting with '!'; print the comment but not instantiate NetMiko
-                output = net_connect.send_command(cmd.strip(), delay_factor=1, max_loops=50)
+                output = net_connect.send_command_timing(cmd.strip(), delay_factor=1, max_loops=50)
                 outfile_file(serial_outputfile, find_hostname, cmd, output)
-            # cmd = 'show tech'
-            # output = net_connect.send_command(cmd.strip(), delay_factor=1, max_loops=50)
-            # outfile_file(serial_outputfile, find_hostname, cmd, output)
-            # cmd2 = 'show full-configuration'
-            # output = net_connect.send_command(cmd2.strip(), delay_factor=1, max_loops=50)
-            # outfile_file(serial_outputfile, find_hostname, cmd2, output2)
-            # print('Device returned no valid device_type - ran "show tech"')
 
         # Disconnect from device
         net_connect.disconnect()
