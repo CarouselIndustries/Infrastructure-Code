@@ -15,6 +15,7 @@ import requests
 import signal
 import sys
 import threading
+from getpass import getpass
 from datetime import datetime
 from queue import Queue
 
@@ -27,7 +28,7 @@ signal.signal(signal.SIGINT, signal.SIG_DFL)  # KeyboardInterrupt: Ctrl-C
 # TODO Change password method to getpass()
 # Get username/password
 username = input('Enter the username: ')
-password = input('Enter the password: ')
+password = getpass('Enter the password: ')
 secret = None
 
 
@@ -41,6 +42,9 @@ commands = commands_file.read().splitlines()
 
 commands_nexus_file = open('commands_cisco_nexus.txt', encoding='UTF-8')
 commands_nexus = commands_nexus_file.read().splitlines()
+
+commands_showtech_file = open('commands_showtech.txt', encoding='UTF-8')
+commands_showtech = commands_showtech_file.read().splitlines()
 
 # TODO Move this section such that folder creation does not occur if script fails
 # Define the output folder
@@ -76,12 +80,16 @@ def deviceconnector(i, q):
             'password': password,
             'secret': secret,
             'device_type': 'autodetect'
+            ,
+            # Gather session output logs
+            'session_log': 'session_output.txt'
         }
 
         # device type autodetect based on netmiko
         auto_device_dict = SSHDetect(**device_dict)
         device_os = auto_device_dict.autodetect()
-        # print(device_os)
+        # Validate device type returned (Testing only)
+        print(device_os)
         # print(auto_device_dict.potential_matches)
 
         # Update device_dict device_type from 'autodetect' to the detected OS
@@ -135,10 +143,17 @@ def deviceconnector(i, q):
                 output = net_connect.send_command(cmd.strip(), delay_factor=1, max_loops=50)
                 outfile_file(serial_outputfile, find_hostname, cmd, output)
         else:
-            cmd = 'show tech'
-            output = net_connect.send_command(cmd.strip(), delay_factor=1, max_loops=50)
-            outfile_file(serial_outputfile, find_hostname, cmd, output)
-            print('Device returned no valid device_type - ran "show tech"')
+            for cmd in commands_showtech:
+                # TODO Ignore blank lines or lines starting with '!'; print the comment but not instantiate NetMiko
+                output = net_connect.send_command(cmd.strip(), delay_factor=1, max_loops=50)
+                outfile_file(serial_outputfile, find_hostname, cmd, output)
+            # cmd = 'show tech'
+            # output = net_connect.send_command(cmd.strip(), delay_factor=1, max_loops=50)
+            # outfile_file(serial_outputfile, find_hostname, cmd, output)
+            # cmd2 = 'show full-configuration'
+            # output = net_connect.send_command(cmd2.strip(), delay_factor=1, max_loops=50)
+            # outfile_file(serial_outputfile, find_hostname, cmd2, output2)
+            # print('Device returned no valid device_type - ran "show tech"')
 
         # Disconnect from device
         net_connect.disconnect()
