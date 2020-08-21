@@ -7,6 +7,7 @@
 # is leveraged to gather relevant information.
 # Authentication via prompt
 # TODO Handle enable account for Cisco devices.
+# TODO Handle Paramiko exceptions that are raised beofre netmiko ones
 
 
 import os
