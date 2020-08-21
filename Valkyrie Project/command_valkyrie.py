@@ -7,7 +7,6 @@
 # is leveraged to gather relevant information.
 # Authentication via prompt
 # TODO Handle enable account for Cisco devices.
-# TODO Handle Paramiko exceptions that are raised beofre netmiko ones
 
 
 import os
@@ -19,6 +18,7 @@ import threading
 from getpass import getpass
 from datetime import datetime
 from queue import Queue
+from paramiko.ssh_exception import NoValidConnectionsError
 
 from netmiko import Netmiko, NetMikoTimeoutException, NetMikoAuthenticationException
 from netmiko import SSHDetect
@@ -87,11 +87,25 @@ def deviceconnector(i, q):
         }
 
         # device type autodetect based on netmiko
-        auto_device_dict = SSHDetect(**device_dict)
-        device_os = auto_device_dict.autodetect()
-        # Validate device type returned (Testing only)
-        print(device_os)
-        # print(auto_device_dict.potential_matches)
+        try:
+            auto_device_dict = SSHDetect(**device_dict)
+            device_os = auto_device_dict.autodetect()
+            # Validate device type returned (Testing only)
+            print(device_os)
+            # print(auto_device_dict.potential_matches)
+        except NetMikoTimeoutException:
+            with print_lock:
+                print('\n{}: ERROR: Connection to {} timed-out. \n'.format(i, ip))
+            q.task_done()
+            continue
+        except NetMikoAuthenticationException:
+            with print_lock:
+                print('\n{}: ERROR: Authentication failed for {}. Stopping thread. \n'.format(i, ip))
+            q.task_done()
+        except NoValidConnectionsError:
+            with print_lock:
+                print('\n{}: ERROR: No Connections available for device {}. \n'.format(i, ip))
+            q.task_done()
 
         # Update device_dict device_type from 'autodetect' to the detected OS
         if device_os == None:
