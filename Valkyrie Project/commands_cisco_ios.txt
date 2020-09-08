@@ -10,17 +10,20 @@ show ip int brief | exc una
 show int status
 show int status err-disabled
 show int link
-show int | i line protocol|duplex|Member
 show int counters errors
 show interface
 show cdp nei
 show cdp nei detail
+show lldp nei
+show lldp nei detail
 show inv
 show module
 show vtp status
 show vtp password
 show log !!!Use caution on Nexus devices  [show log last 500]
 show log last 500
+
+!!!Environmentals
 show env
 show env all
 show environment
@@ -28,6 +31,8 @@ show power inline
 show proc cpu hist
 show proc cpu sorted
 show cpu usage
+
+!!!Layer 2 Commands
 show vlan
 show int trunk
 show spanning-tree summary
@@ -39,10 +44,14 @@ show etherc summary
 show port-channel summary
 show mac address
 show mac address-table count
+
+!!!HSRP Commands
 show standby brief
 show standby
 show hsrp brief
 show hsrp
+
+!!!Layer 3 Commands
 show ip arp
 show arp
 show ip protocols
@@ -68,12 +77,16 @@ show ip route vrf all
 show ip eigrp nei vrf all
 show ip eigrp nei det vrf all
 show ip eigrp vrf topology vrf all
+
+!!!Multicast
 show ip mroute
 show ip mroute summary
 show ip pim neighbor
 show ip pim rp
 show ip pim interface | i status|DR's
 show ip igmp groups
+
+!!!VSS/Stack commands
 show redundancy
 show module switch 1
 show module switch 2
@@ -85,7 +98,3 @@ show pagp dual-active
 show switch detail
 show switch stack-ports summary
 show stack-power det
-show fex
-show vpc brief
-show vpc consistency-parameters global
-show vpc peer-keepalive
