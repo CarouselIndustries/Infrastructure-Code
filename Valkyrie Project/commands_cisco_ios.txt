@@ -1,6 +1,7 @@
 show run
 show version
 show license
+show license all
 show clock
 show ntp associations
 show ntp peer-status
@@ -97,4 +98,9 @@ show switch virtual dual-active pagp
 show pagp dual-active
 show switch detail
 show switch stack-ports summary
+show stackwise-virtual
+show stackwise-virtual link
+show stackwise-virtual bandwidth
+show stackwise-virtual neighbors
+show stackwise-virtual dual-active-detection
 show stack-power det
