@@ -38,8 +38,16 @@ ip_addrs_file = open('ips.txt', encoding='UTF-8')
 ip_addrs = ip_addrs_file.read().splitlines()
 
 # List of commands to run split by line
-commands_file = open('commands_cisco_ios.txt', encoding='UTF-8')
-commands = commands_file.read().splitlines()
+#commands_file = open('commands_cisco_ios.txt', encoding='UTF-8')
+#commands = commands_file.read().splitlines()
+
+with open('commands_cisco_ios.txt', encoding='UTF-8') as commands_file:
+    for line in commands_file:
+            if len(line.split()) == 0:
+                    continue
+            else:
+                commands = commands_file.read().splitlines()
+
 
 commands_nexus_file = open('commands_cisco_nexus.txt', encoding='UTF-8')
 commands_nexus = commands_nexus_file.read().splitlines()
@@ -65,6 +73,7 @@ url = 'https://api.chucknorris.io/jokes/random'
 cn_resp = requests.get(url=url, headers={'Content-Type': 'application/json'})
 cn_joke = json.loads(cn_resp.text)
 
+
 # Function used in threads to connect to devices, passing in the thread # and queue
 def deviceconnector(i, q):
     # This while loop runs indefinitely and grabs IP addresses from the queue and processes them
@@ -82,8 +91,8 @@ def deviceconnector(i, q):
             'secret': secret,
             'device_type': 'autodetect'
             # Gather session output logs - TESTING ONLY
-            # ,
-            # 'session_log': 'session_output.txt'
+            ,
+            'session_log': 'session_output.txt'
         }
 
         # device type autodetect based on netmiko
@@ -109,8 +118,8 @@ def deviceconnector(i, q):
 
         # Update device_dict device_type from 'autodetect' to the detected OS
         if device_os == None:
-            print( 'Thread {}/{}: '.format(i+1, num_threads) + device_dict['host'] \
-                   + ' returned device_type of: ' + device_dict['device_type'] + '\n')
+            print('Thread {}/{}: '.format(i+1, num_threads) + device_dict['host']
+                  + ' returned device_type of: ' + device_dict['device_type'] + '\n')
             device_dict['device_type'] = 'autodetect'
         else:
             device_dict['device_type'] = device_os
@@ -149,9 +158,16 @@ def deviceconnector(i, q):
 
         if device_os == 'cisco_ios':
             for cmd in commands:
+                if [comamnds][0] == '!':
+                    outfile_file(serial_outputfile, find_hostname, cmd, '!skip')
+# Left off here!
+# Left off here!
+# Left off here!
+# Need to determine if the state of each line is a '!' - if so exclude the command from netmiko
+                else:
                 # TODO Ignore blank lines or lines starting with '!'; print the comment but not instantiate NetMiko
-                output = net_connect.send_command(cmd.strip(), delay_factor=1, max_loops=50)
-                outfile_file(serial_outputfile, find_hostname, cmd, output)
+                    output = net_connect.send_command(cmd.strip(), delay_factor=1, max_loops=50)
+                    outfile_file(serial_outputfile, find_hostname, cmd, output)
         elif device_os == 'cisco_nxos':
             for cmd in commands_nexus:
                 # TODO Ignore blank lines or lines starting with '!'; print the comment but not instantiate NetMiko
@@ -173,11 +189,13 @@ def deviceconnector(i, q):
         print("Thread {}/{}: Completed".format(i+1, num_threads))
         q.task_done()
 
+
 def outfile_file(serial_outputfile, find_hostname, cmd, output):
     # Takes in variables (serial_outputfile, find_hostname, cmd, output) and writes output to file
     serial_outputfile.write((find_hostname + '\n') * 3)
     serial_outputfile.write(find_hostname + cmd + '\n')
     serial_outputfile.write(output + '\n')
+
 
 def main():
     # Setting up threads based on number set above
@@ -200,9 +218,11 @@ def main():
     print("*****\nCompleting Valkyrie process...\n*****")
     print(cn_joke['value'])
 
+
 if __name__ == '__main__':
     try:
         main()
     except ValueError:
         print('No Valhalla for you')
         sys.exit()
+
