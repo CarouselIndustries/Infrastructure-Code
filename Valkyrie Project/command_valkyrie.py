@@ -8,7 +8,7 @@
 # Authentication via prompt
 # TODO Handle enable account for Cisco devices.
 
-
+import re
 import os
 import json
 import requests
@@ -31,23 +31,29 @@ signal.signal(signal.SIGINT, signal.SIG_DFL)  # KeyboardInterrupt: Ctrl-C
 username = input('Enter the username: ')
 password = getpass('Enter the password: ')
 secret = None
-
+ip_addrs = []
 
 # Switch IP addresses from text file that has one IP per line
-ip_addrs_file = open('ips.txt', encoding='UTF-8')
-ip_addrs = ip_addrs_file.read().splitlines()
+# ip_addrs_file = open('ips.txt', encoding='UTF-8')
+# ip_addrs = ip_addrs_file.read().splitlines()
+
+with open('ips.txt', encoding='UTF-8') as ip_addrs_file:
+    for line in ip_addrs_file:
+        if re.match(r'\d', line[0]):
+            ip_addrs.append(line.strip())
+        else:
+            continue
 
 # List of commands to run split by line
-#commands_file = open('commands_cisco_ios.txt', encoding='UTF-8')
-#commands = commands_file.read().splitlines()
+commands_file = open('commands_cisco_ios.txt', encoding='UTF-8')
+commands = commands_file.read().splitlines()
 
-with open('commands_cisco_ios.txt', encoding='UTF-8') as commands_file:
-    for line in commands_file:
-            if len(line.split()) == 0:
-                    continue
-            else:
-                commands = commands_file.read().splitlines()
-
+# with open('commands_cisco_ios.txt', encoding='UTF-8') as commands_file:
+#     for line in commands_file:
+#             if len(line.split()) == 0:
+#                     continue
+#             else:
+#                 commands = commands_file.read().splitlines()
 
 commands_nexus_file = open('commands_cisco_nexus.txt', encoding='UTF-8')
 commands_nexus = commands_nexus_file.read().splitlines()
@@ -81,7 +87,7 @@ def deviceconnector(i, q):
     while True:
 
         ip = q.get()
-        print('Thread {}/{}: Acquired IP: {}'.format(i+1, num_threads, ip))
+        print('Thread {}/{}: Acquired IP: {}     '.format(i+1, num_threads, ip))
 
         # device_dict is copied over to net_connect
         device_dict = {
@@ -104,16 +110,16 @@ def deviceconnector(i, q):
             # print(auto_device_dict.potential_matches)
         except NetMikoTimeoutException:
             with print_lock:
-                print('\n{}: ERROR: Connection to {} timed-out. \n'.format(i, ip))
+                print('Thread {}: ERROR: Connection to {} timed-out. \n'.format(i+1, ip))
             q.task_done()
             continue
         except NetMikoAuthenticationException:
             with print_lock:
-                print('\n{}: ERROR: Authentication failed for {}. Stopping thread. \n'.format(i, ip))
+                print('Thread {}: ERROR: Authentication failed for {}. Stopping thread. \n'.format(i+1, ip))
             q.task_done()
         except NoValidConnectionsError:
             with print_lock:
-                print('\n{}: ERROR: No Connections available for device {}. \n'.format(i, ip))
+                print('Thread {}: ERROR: No Connections available for device {}. \n'.format(i+1, ip))
             q.task_done()
 
         # Update device_dict device_type from 'autodetect' to the detected OS
@@ -158,26 +164,26 @@ def deviceconnector(i, q):
 
         if device_os == 'cisco_ios':
             for cmd in commands:
-                if [comamnds][0] == '!':
-                    outfile_file(serial_outputfile, find_hostname, cmd, '!skip')
-# Left off here!
-# Left off here!
-# Left off here!
-# Need to determine if the state of each line is a '!' - if so exclude the command from netmiko
-                else:
-                # TODO Ignore blank lines or lines starting with '!'; print the comment but not instantiate NetMiko
+                if re.match(r'\w', cmd):
                     output = net_connect.send_command(cmd.strip(), delay_factor=1, max_loops=50)
                     outfile_file(serial_outputfile, find_hostname, cmd, output)
+                else:
+                    serial_outputfile.write(find_hostname + cmd + '\n')
+                    # print('Working on section: ' + cmd)
         elif device_os == 'cisco_nxos':
             for cmd in commands_nexus:
-                # TODO Ignore blank lines or lines starting with '!'; print the comment but not instantiate NetMiko
-                output = net_connect.send_command(cmd.strip(), delay_factor=1, max_loops=50)
-                outfile_file(serial_outputfile, find_hostname, cmd, output)
+                if re.match(r'\w', cmd):
+                    output = net_connect.send_command(cmd.strip(), delay_factor=1, max_loops=50)
+                    outfile_file(serial_outputfile, find_hostname, cmd, output)
+                else:
+                    serial_outputfile.write(find_hostname + cmd + '\n')
         else:
             for cmd in commands_showtech:
-                # TODO Ignore blank lines or lines starting with '!'; print the comment but not instantiate NetMiko
-                output = net_connect.send_command_timing(cmd.strip(), delay_factor=1, max_loops=50)
-                outfile_file(serial_outputfile, find_hostname, cmd, output)
+                if re.match(r'\w', cmd):
+                    output = net_connect.send_command(cmd.strip(), delay_factor=1, max_loops=50)
+                    outfile_file(serial_outputfile, find_hostname, cmd, output)
+                else:
+                    serial_outputfile.write(find_hostname + cmd + '\n')
 
         # Disconnect from device
         net_connect.disconnect()
