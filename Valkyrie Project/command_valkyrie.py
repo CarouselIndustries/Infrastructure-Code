@@ -16,7 +16,7 @@ import signal
 import sys
 import threading
 from getpass import getpass
-from datetime import datetime
+from datetime import datetime, date
 from queue import Queue
 from paramiko.ssh_exception import NoValidConnectionsError
 
@@ -97,8 +97,8 @@ def deviceconnector(i, q):
             'secret': secret,
             'device_type': 'autodetect'
             # Gather session output logs - TESTING ONLY
-            ,
-            'session_log': 'session_output.txt'
+            # ,
+            # 'session_log': 'session_output.txt'
         }
 
         # device type autodetect based on netmiko
@@ -106,7 +106,7 @@ def deviceconnector(i, q):
             auto_device_dict = SSHDetect(**device_dict)
             device_os = auto_device_dict.autodetect()
             # Validate device type returned (Testing only)
-            print(device_os)
+            # print(device_os)
             # print(auto_device_dict.potential_matches)
         except NetMikoTimeoutException:
             with print_lock:
@@ -160,27 +160,35 @@ def deviceconnector(i, q):
         timenow = '{:%Y-%m-%d %H_%M_%S}'.format(datetime.now())
         filename = (hostname + ' ' + ip + ' - valkyrie output {0}.txt')
         serial_outputfile = open('valkyrie output/' + filename.format(timenow), 'w')
+        error_outputfile = open('valkyrie output/valkyrie errors ' + str(date.today()) + '.txt', 'a+')
+
         print('Writing file name ' + hostname + ' ' + ip + ' - valkyrie output ' + format(timenow) + '.txt')
 
         if device_os == 'cisco_ios':
             for cmd in commands:
-                if re.match(r'\w', cmd):
-                    output = net_connect.send_command(cmd.strip(), delay_factor=1, max_loops=50)
-                    outfile_file(serial_outputfile, find_hostname, cmd, output)
-                else:
-                    serial_outputfile.write(find_hostname + cmd + '\n')
-                    # print('Working on section: ' + cmd)
+                try:
+                    if re.match(r'\w', cmd):
+                        output = net_connect.send_command(cmd.strip(), delay_factor=1, max_loops=500)
+                        outfile_file(serial_outputfile, find_hostname, cmd, output)
+                    else:
+                        serial_outputfile.write(find_hostname + cmd + '\n')
+                        # print('Working on section: ' + cmd)
+                except OSError:
+                    serial_outputfile.write(find_hostname + cmd + ' !!!!!Command failed - run manually!!!!!\n')
+                    error_outputfile.write(ip + ' (' + hostname + ') failed to run command: ' + cmd + '\n')
+
+                    # TODO place the 'try/except blocks into a function in order to condense the code
         elif device_os == 'cisco_nxos':
             for cmd in commands_nexus:
                 if re.match(r'\w', cmd):
-                    output = net_connect.send_command(cmd.strip(), delay_factor=1, max_loops=50)
+                    output = net_connect.send_command(cmd.strip(), delay_factor=1, max_loops=500)
                     outfile_file(serial_outputfile, find_hostname, cmd, output)
                 else:
                     serial_outputfile.write(find_hostname + cmd + '\n')
         else:
             for cmd in commands_showtech:
                 if re.match(r'\w', cmd):
-                    output = net_connect.send_command(cmd.strip(), delay_factor=1, max_loops=50)
+                    output = net_connect.send_command(cmd.strip(), delay_factor=1, max_loops=500)
                     outfile_file(serial_outputfile, find_hostname, cmd, output)
                 else:
                     serial_outputfile.write(find_hostname + cmd + '\n')
@@ -190,6 +198,10 @@ def deviceconnector(i, q):
 
         # Close the file
         serial_outputfile.close()
+        error_outputfile.close()
+        # verify elapsed time per device
+        # timenow2 = '{:%Y-%m-%d %H_%M_%S}'.format(datetime.now())
+        # print('Closing file name ' + hostname + ' ' + ip + ' - valkyrie output ' + format(timenow2) + '.txt')
 
         # Set the queue task as complete, thereby removing it from the queue indefinitely
         print("Thread {}/{}: Completed".format(i+1, num_threads))
