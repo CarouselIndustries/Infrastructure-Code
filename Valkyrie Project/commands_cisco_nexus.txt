@@ -68,10 +68,6 @@ show ip route
 show ip route vrf all
 show route
 show ip default-gateway
-show policy-map interface
-show ip eigrp nei vrf all
-show ip eigrp nei det vrf all
-show ip eigrp vrf topology vrf all
 
 !!!Multicast
 show ip mroute
