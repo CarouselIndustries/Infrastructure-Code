@@ -49,13 +49,6 @@ with open('ips.txt', encoding='UTF-8') as ip_addrs_file:
 commands_file = open('commands_cisco_ios.txt', encoding='UTF-8')
 commands = commands_file.read().splitlines()
 
-# with open('commands_cisco_ios.txt', encoding='UTF-8') as commands_file:
-#     for line in commands_file:
-#             if len(line.split()) == 0:
-#                     continue
-#             else:
-#                 commands = commands_file.read().splitlines()
-
 commands_nexus_file = open('commands_cisco_nexus.txt', encoding='UTF-8')
 commands_nexus = commands_nexus_file.read().splitlines()
 
@@ -145,8 +138,6 @@ def deviceconnector(i, q):
             with print_lock:
                 print('\n{}: ERROR: Authentication failed for {}. Stopping thread. \n'.format(i+1, ip))
             q.task_done()
-            # Closing the process via os.kill - UNIX only?
-            # os.kill(os.getpid(), signal.SIGUSR1)
 
         # Capture the output
         # TODO TextFSM to parse data
@@ -174,29 +165,11 @@ def deviceconnector(i, q):
                         outfile_file(serial_outputfile, find_hostname, cmd, output)
                     else:
                         serial_outputfile.write(find_hostname + cmd + '\n')
-                        # print('Working on section: ' + cmd)
-                # except OSError:
-                #     print('OSError exception: {}'.format(repr(OSError)))
-                #     serial_outputfile.write('{} {} !!!!!Command failed - run manually!!!!!\n'.format(find_hostname, cmd))
-                #     error_outputfile.write('[{}] {} ({}) failed to run command: {}\n'.format(datetime.now().strftime('%H:%M:%S'), ip, hostname, cmd))
-                #     # sleep(2)
-                #     net_connect = Netmiko(**device_dict)
-                #     sleep(5)
-                # except NetMikoTimeoutException:
-                #     serial_outputfile.write(find_hostname + cmd + ' !!!!!Command failed - run manually!!!!!\n')
-                #     error_outputfile.write('[{}] {}: ({}) failed to run command: {}\n'.format(datetime.now().strftime('%H:%M:%S'), ip, hostname, cmd))
-                #     #
-                #     net_connect = Netmiko(**device_dict)
-                #     print('ERROR: Connection lost. Reconnecting to: {} ([])\n'.format(ip, hostname))
-                #     error_outputfile.write('Connection lost: Reconnecting to: ' + net_connect.host)
                 except (NetMikoTimeoutException, EOFError, OSError) as e:
                     print('Th{}/{}: Exception occured: {}'.format(i+1, num_threads, repr(e)))
                     print('Th{}/{}: ERROR: Connection lost. Reconnecting to: {} ({})\n'.format(i+1, num_threads, ip, hostname))
                     serial_outputfile.write('{} {} !!!!!Command failed - run manually!!!!!\n'.format(find_hostname, cmd))
                     error_outputfile.write('[{}] {} ({}) failed to run command: {}\n'.format(datetime.now().strftime('%H:%M:%S'), ip, hostname, cmd))
-                    #
-                    # error_outputfile.write('Connection lost: Reconnecting to: ' + net_connect.host)
-                    # sleep(2)
                     net_connect = Netmiko(**device_dict)
                     sleep(5)
                     #
@@ -225,12 +198,11 @@ def deviceconnector(i, q):
 
         # verify elapsed time per device
         end = datetime.now()
-        print('Th{}/{}: Completed. Time elapsed: {}'.format(i+1, num_threads, (end-start.strftime('%H:%M:%S'))))
-        # timenow2 = '{:%Y-%m-%d %H_%M_%S}'.format(datetime.now())
-        # print('Closing file name ' + hostname + ' ' + ip + ' - valkyrie output ' + format(timenow2) + '.txt')
+        # elapsed = end-start
+        # print('Th{}/{}: Completed. Time elapsed: {} seconds'.format(i+1, num_threads, ((int(elapsed.total_seconds())))))
+        print('Th{}/{}: Completed. Time elapsed: {}'.format(i+1, num_threads, ((end-start))))
 
         # Set the queue task as complete, thereby removing it from the queue indefinitely
-        # print("Thread {}/{}: Completed".format(i+1, num_threads))
         q.task_done()
 
 
