@@ -5,6 +5,7 @@ show license
 show license usage
 show clock
 show ntp peers
+show ntp peer-status
 show ntp status
 show key chain
 show int desc
@@ -16,50 +17,71 @@ show int counters errors
 show interface
 show cdp nei
 show cdp nei detail
+show lldp nei
+show lldp nei detail
 show inv
 show module
 show redundancy status
-show log last 500
+show vtp status
+show vtp password
+show snmp user
+show snmp engineID
+show logg last 500
+
+!!!Environmentals
 show env
 show proc cpu hist
 show proc cpu sort
+
+!!!Layer 2 Commands
 show vlan
 show int trunk
 show spanning-tree summary
+show spanning-tree root
+show spanning-tree brief
+show spanning-tree blockedports
+show port-channel load-balance
+show port-channel summary
 show mac address-table
 show mac address-table count
+
+!!!FHRP Commands
 show hsrp brief
 show hsrp
+show vrrp brief
+show vrrp
+
+!!!Layer 3 Commands
 show ip arp
 show ip arp vrf all
 show ip ospf nei
 show ip ospf nei det
 show ip ospf database
-show ip eigrp nei
-show ip eigrp vrf * nei
-show ip eigrp nei det
-show ip eigrp vrf * nei det
-show ip eigrp topology
-show ip eigrp vrf * topology
+show ip eigrp nei vrf all
+show ip eigrp nei det vrf all
+show ip eigrp vrf topology vrf all
 show ip eigrp interface
 show ip bgp
 show ip bgp all summ
 show ip bgp summary
 show ip route
-show ip route vrf *
+show ip route vrf all
 show route
 show ip default-gateway
 show policy-map interface
-show ip route vrf all
 show ip eigrp nei vrf all
 show ip eigrp nei det vrf all
 show ip eigrp vrf topology vrf all
+
+!!!Multicast
 show ip mroute
 show ip mroute summary
 show ip pim neighbor
 show ip pim rp
 show ip pim interface | i status|DR's
 show ip igmp groups
+
+!!!FEX/VPC commands
 show fex
 show vpc brief
 show vpc consistency-parameters global

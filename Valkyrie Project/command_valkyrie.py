@@ -81,7 +81,7 @@ def deviceconnector(i, q):
     while True:
 
         ip = q.get()
-        print('Th{}/{}: Acquired IP:  {}'.format(i+1, num_threads, ip))
+        print('Th{}/{}: Acquired IP:  {}\n'.format(i+1, num_threads, ip))
 
         # device_dict is copied over to net_connect
         device_dict = {
@@ -162,32 +162,37 @@ def deviceconnector(i, q):
                 try:
                     if re.match(r'\w', cmd):
                         output = net_connect.send_command(cmd.strip(), delay_factor=1, max_loops=500)
-                        outfile_file(serial_outputfile, find_hostname, cmd, output)
+                        write_file(serial_outputfile, find_hostname, cmd, output)
                     else:
                         serial_outputfile.write(find_hostname + cmd + '\n')
                 except (NetMikoTimeoutException, EOFError, OSError) as e:
-                    print('Th{}/{}: Exception occured: {}'.format(i+1, num_threads, repr(e)))
-                    print('Th{}/{}: ERROR: Connection lost. Reconnecting to: {} ({})\n'.format(i+1, num_threads, ip, hostname))
-                    serial_outputfile.write('{} {} !!!!!Command failed - run manually!!!!!\n'.format(find_hostname, cmd))
-                    error_outputfile.write('[{}] {} ({}) failed to run command: {}\n'.format(datetime.now().strftime('%H:%M:%S'), ip, hostname, cmd))
+                    exception_logging(e, i, num_threads, ip, hostname, cmd, find_hostname, serial_outputfile, error_outputfile)
                     net_connect = Netmiko(**device_dict)
                     sleep(5)
-                    #
         elif device_os == 'cisco_nxos':
             for cmd in commands_nexus:
-                if re.match(r'\w', cmd):
-                    output = net_connect.send_command(cmd.strip(), delay_factor=1, max_loops=500)
-                    outfile_file(serial_outputfile, find_hostname, cmd, output)
-                else:
-                    serial_outputfile.write(find_hostname + cmd + '\n')
+                try:
+                    if re.match(r'\w', cmd):
+                        output = net_connect.send_command(cmd.strip(), delay_factor=1, max_loops=500)
+                        write_file(serial_outputfile, find_hostname, cmd, output)
+                    else:
+                        serial_outputfile.write(find_hostname + cmd + '\n')
+                except (NetMikoTimeoutException, EOFError, OSError) as e:
+                    exception_logging(e, i, num_threads, ip, hostname, cmd, find_hostname, serial_outputfile, error_outputfile)
+                    net_connect = Netmiko(**device_dict)
+                    sleep(5)
         else:
             for cmd in commands_showtech:
-                if re.match(r'\w', cmd):
-                    output = net_connect.send_command(cmd.strip(), delay_factor=1, max_loops=500)
-                    outfile_file(serial_outputfile, find_hostname, cmd, output)
-                else:
-                    serial_outputfile.write(find_hostname + cmd + '\n')
-
+                try:
+                    if re.match(r'\w', cmd):
+                        output = net_connect.send_command(cmd.strip(), delay_factor=1, max_loops=500)
+                        write_file(serial_outputfile, find_hostname, cmd, output)
+                    else:
+                      serial_outputfile.write(find_hostname + cmd + '\n')
+                except (NetMikoTimeoutException, EOFError, OSError) as e:
+                    exception_logging(e, i, num_threads, ip, hostname, cmd, find_hostname, serial_outputfile, error_outputfile)
+                    net_connect = Netmiko(**device_dict)
+                    sleep(5)
         # Disconnect from device
         net_connect.disconnect()
 
@@ -206,7 +211,14 @@ def deviceconnector(i, q):
         q.task_done()
 
 
-def outfile_file(serial_outputfile, find_hostname, cmd, output):
+def exception_logging(e, i, num_threads, ip, hostname, cmd, find_hostname, serial_outputfile, error_outputfile):
+    print('Th{}/{}: Exception occured: {}'.format(i + 1, num_threads, repr(e)))
+    print('Th{}/{}: ERROR: Connection lost. Reconnecting to: {} ({})\n'.format(i + 1, num_threads, ip, hostname))
+    serial_outputfile.write('{} {} !!!!!Command failed - run manually!!!!!\n'.format(find_hostname, cmd))
+    error_outputfile.write('[{}] {} ({}) failed to run command: {}\n'.format(datetime.now().strftime('%H:%M:%S'), ip, hostname, cmd))
+
+
+def write_file(serial_outputfile, find_hostname, cmd, output):
     # Takes in variables (serial_outputfile, find_hostname, cmd, output) and writes output to file
     serial_outputfile.write((find_hostname + '\n') * 3)
     serial_outputfile.write(find_hostname + cmd + '\n')
