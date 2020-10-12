@@ -68,6 +68,7 @@ show ip route
 show ip route vrf all
 show route
 show ip default-gateway
+show policy-map interface brief
 
 !!!Multicast
 show ip mroute
