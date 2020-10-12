@@ -15,6 +15,7 @@ import requests
 import signal
 import sys
 import threading
+from time import sleep
 from getpass import getpass
 from datetime import datetime, date
 from queue import Queue
@@ -87,7 +88,7 @@ def deviceconnector(i, q):
     while True:
 
         ip = q.get()
-        print('Th{}/{}: Acquired IP: {}     '.format(i+1, num_threads, ip))
+        print('Th{}/{}: Acquired IP:  {}'.format(i+1, num_threads, ip))
 
         # device_dict is copied over to net_connect
         device_dict = {
@@ -97,8 +98,8 @@ def deviceconnector(i, q):
             'secret': secret,
             'device_type': 'autodetect'
             # Gather session output logs - TESTING ONLY
-            ,
-            'session_log': 'session_output.txt'
+            # ,
+            # 'session_log': 'session_output.txt'
         }
 
         # device type autodetect based on netmiko
@@ -133,7 +134,7 @@ def deviceconnector(i, q):
         # Connect to the device, and print out auth or timeout errors
         try:
             net_connect = Netmiko(**device_dict)
-            print('Connecting to: ' + net_connect.host + ' (' + device_dict['device_type'] + ')')
+            print('Th{}/{}: Connecting to: {} ({})'.format(i+1, num_threads, net_connect.host, device_dict['device_type']))
 
         except NetMikoTimeoutException:
             with print_lock:
@@ -153,7 +154,7 @@ def deviceconnector(i, q):
         # create two variables - one of hostname and the prompt level and another with just the hostname
         find_hostname = net_connect.find_prompt()
         hostname = find_hostname.rstrip('#>')
-        print('Associated IP: {} with hostname: {}'.format(ip, hostname))
+        print('Th{}/{}: Associated IP: {} with hostname: {}'.format(i+1, num_threads, ip, hostname))
 
         # TODO Write file to a optional, specified folder
 
@@ -163,7 +164,7 @@ def deviceconnector(i, q):
         serial_outputfile = open('valkyrie output/' + filename.format(timenow), 'w')
         error_outputfile = open('valkyrie output/valkyrie errors ' + str(date.today()) + '.txt', 'a')
 
-        print('Writing file name ' + hostname + ' ' + ip + ' - valkyrie output ' + format(timenow) + '.txt')
+        print('Th{}/{}: Writing file name "{} {} - valkyrie output {}.txt"'.format(i+1, num_threads, hostname, ip, format(timenow)))
 
         if device_os == 'cisco_ios':
             for cmd in commands:
@@ -174,16 +175,31 @@ def deviceconnector(i, q):
                     else:
                         serial_outputfile.write(find_hostname + cmd + '\n')
                         # print('Working on section: ' + cmd)
-                except OSError:
-                    serial_outputfile.write(find_hostname + cmd + ' !!!!!Command failed - run manually!!!!!\n')
-                    error_outputfile.write('{} {} ({}) failed to run command: {}\n'.format(datetime.now(), ip, hostname, cmd))
-                except NetMikoTimeoutException:
-                    serial_outputfile.write(find_hostname + cmd + ' !!!!!Command failed - run manually!!!!!\n')
-                    error_outputfile.write('{} {}: ({}) failed to run command: {}\n'.format(datetime.now(), ip, hostname, cmd))
+                # except OSError:
+                #     print('OSError exception: {}'.format(repr(OSError)))
+                #     serial_outputfile.write('{} {} !!!!!Command failed - run manually!!!!!\n'.format(find_hostname, cmd))
+                #     error_outputfile.write('[{}] {} ({}) failed to run command: {}\n'.format(datetime.now().strftime('%H:%M:%S'), ip, hostname, cmd))
+                #     # sleep(2)
+                #     net_connect = Netmiko(**device_dict)
+                #     sleep(5)
+                # except NetMikoTimeoutException:
+                #     serial_outputfile.write(find_hostname + cmd + ' !!!!!Command failed - run manually!!!!!\n')
+                #     error_outputfile.write('[{}] {}: ({}) failed to run command: {}\n'.format(datetime.now().strftime('%H:%M:%S'), ip, hostname, cmd))
+                #     #
+                #     net_connect = Netmiko(**device_dict)
+                #     print('ERROR: Connection lost. Reconnecting to: {} ([])\n'.format(ip, hostname))
+                #     error_outputfile.write('Connection lost: Reconnecting to: ' + net_connect.host)
+                except (NetMikoTimeoutException, EOFError, OSError) as e:
+                    print('Th{}/{}: Exception occured: {}'.format(i+1, num_threads, repr(e)))
+                    print('Th{}/{}: ERROR: Connection lost. Reconnecting to: {} ({})\n'.format(i+1, num_threads, ip, hostname))
+                    serial_outputfile.write('{} {} !!!!!Command failed - run manually!!!!!\n'.format(find_hostname, cmd))
+                    error_outputfile.write('[{}] {} ({}) failed to run command: {}\n'.format(datetime.now().strftime('%H:%M:%S'), ip, hostname, cmd))
                     #
-                    # re-connect SSH session
+                    # error_outputfile.write('Connection lost: Reconnecting to: ' + net_connect.host)
+                    # sleep(2)
+                    net_connect = Netmiko(**device_dict)
+                    sleep(5)
                     #
-                    # TODO place the 'try/except blocks into a function in order to condense the code
         elif device_os == 'cisco_nxos':
             for cmd in commands_nexus:
                 if re.match(r'\w', cmd):
@@ -204,11 +220,12 @@ def deviceconnector(i, q):
 
         # Close the file
         serial_outputfile.close()
+        error_outputfile.write('\nClosing file...\n')
         error_outputfile.close()
 
         # verify elapsed time per device
         end = datetime.now()
-        print('Thread {}/{}: completed. Time elapsed: {}'.format(i+1, num_threads, (end-start)))
+        print('Th{}/{}: Completed. Time elapsed: {}'.format(i+1, num_threads, (end-start.strftime('%H:%M:%S'))))
         # timenow2 = '{:%Y-%m-%d %H_%M_%S}'.format(datetime.now())
         # print('Closing file name ' + hostname + ' ' + ip + ' - valkyrie output ' + format(timenow2) + '.txt')
 
