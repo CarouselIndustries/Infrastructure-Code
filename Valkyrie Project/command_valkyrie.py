@@ -4,7 +4,8 @@
 
 # DESCRIPTION
 # The goal is to pull output from various SSH devices. Threading and device autodetection
-# is leveraged to gather relevant information.
+# are leveraged to gather relevant information. Device_type is recognized for supported
+# devices to ensure only relevant commands are used.
 # Authentication via prompt
 # TODO Handle enable account for Cisco devices.
 
@@ -142,13 +143,14 @@ def deviceconnector(i, q):
         outputfile = open('valkyrie output/' + filename.format(timenow), 'w')
         errorfile = open('valkyrie output/valkyrie errors ' + str(date.today()) + '.txt', 'a')
 
-        print('Th{}/{}: Writing file name "{} {} - valkyrie output {}.txt"'.format(i+1, threads, hostname, ip, format(timenow)))
+        print('Th{}/{}: Writing file name "{} {} - valkyrie output {}.txt"'.format(
+            i+1, threads, hostname, ip, format(timenow)))
 
         if device_os == 'cisco_ios':
             for cmd in commands:
                 try:
                     if re.match(r'\w', cmd):
-                        output = net_connect.send_command(cmd.strip(), delay_factor=1, max_loops=500)
+                        output = net_connect.send_command(cmd.strip(), delay_factor=1, max_loops=1000)
                         write_file(outputfile, prompt, cmd, output)
                     else:
                         outputfile.write(prompt + cmd + '\n')
@@ -160,7 +162,7 @@ def deviceconnector(i, q):
             for cmd in commands_nexus:
                 try:
                     if re.match(r'\w', cmd):
-                        output = net_connect.send_command(cmd.strip(), delay_factor=1, max_loops=500)
+                        output = net_connect.send_command(cmd.strip(), delay_factor=1, max_loops=1000)
                         write_file(outputfile, prompt, cmd, output)
                     else:
                         outputfile.write(prompt + cmd + '\n')
@@ -172,7 +174,7 @@ def deviceconnector(i, q):
             for cmd in commands_showtech:
                 try:
                     if re.match(r'\w', cmd):
-                        output = net_connect.send_command(cmd.strip(), delay_factor=1, max_loops=500)
+                        output = net_connect.send_command(cmd.strip(), delay_factor=1, max_loops=1000)
                         write_file(outputfile, prompt, cmd, output)
                     else:
                         outputfile.write(prompt + cmd + '\n')
@@ -185,7 +187,7 @@ def deviceconnector(i, q):
 
         # Close the file
         outputfile.close()
-        errorfile.write('Closing file...\n\n')
+        # errorfile.write('Closing file...')
         errorfile.close()
 
         # verify elapsed time per device
@@ -200,7 +202,8 @@ def exception_logging(e, i, threads, ip, hostname, cmd, prompt, outputfile, erro
     print('Th{}/{}: Exception occurred: {}'.format(i + 1, threads, repr(e)))
     print('Th{}/{}: ERROR: Connection lost. Reconnecting to: {} ({})\n'.format(i + 1, threads, ip, hostname))
     outputfile.write('{} {} !!!!!Command failed - run manually!!!!!\n'.format(prompt, cmd))
-    errorfile.write('[{}] {} ({}) failed to run command: {}\n'.format(datetime.now().strftime('%H:%M:%S'), ip, hostname, cmd))
+    errorfile.write('[{}] {} ({}) failed to run command: {}\n'.format(
+        datetime.now().strftime('%H:%M:%S'), ip, hostname, cmd))
 
 
 def write_file(outputfile, prompt, cmd, output):
