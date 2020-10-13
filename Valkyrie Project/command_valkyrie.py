@@ -100,6 +100,18 @@ def deviceconnector(i, q):
             # Validate device type returned (Testing only)
             # print('===== ' + device_os + ' =====')
             # print(auto_device_dict.potential_matches)
+
+            # Update device_dict device_type from 'autodetect' to the detected OS
+            if device_os is None:
+                print('Th{}/{}: {} returned unsupported device_type of {}\n'.format(i + 1, threads, device_dict['host'],
+                                                                                    device_os))
+                device_dict['device_type'] = 'autodetect'
+            else:
+                device_dict['device_type'] = device_os
+
+            # Connect to the device, and print out auth or timeout errors
+            net_connect = Netmiko(**device_dict)
+            print('Th{}/{}: Connecting to: {} ({})'.format(i+1, threads, net_connect.host, device_dict['device_type']))
         except NetMikoTimeoutException:
             with print_lock:
                 print('Th{}/{}: ERROR: Connection to {} timed-out. \n'.format(i+1, threads, ip))
@@ -112,27 +124,6 @@ def deviceconnector(i, q):
         except NoValidConnectionsError:
             with print_lock:
                 print('Th{}/{}: ERROR: No Connections available for device {}. \n'.format(i+1, threads, ip))
-            q.task_done()
-
-        # Update device_dict device_type from 'autodetect' to the detected OS
-        if device_os is None:
-            print('Th{}/{}: {} returned unsupported device_type of {}\n'.format(i+1, threads, device_dict['host'], device_os))
-            device_dict['device_type'] = 'autodetect'
-        else:
-            device_dict['device_type'] = device_os
-
-        # Connect to the device, and print out auth or timeout errors
-        try:
-            net_connect = Netmiko(**device_dict)
-            print('Th{}/{}: Connecting to: {} ({})'.format(i+1, threads, net_connect.host, device_dict['device_type']))
-        except NetMikoTimeoutException:
-            with print_lock:
-                print('\n{}: ERROR: Connection to {} timed-out. \n'.format(i+1, ip))
-            q.task_done()
-            continue
-        except NetMikoAuthenticationException:
-            with print_lock:
-                print('\n{}: ERROR: Authentication failed for {}. Stopping thread. \n'.format(i+1, ip))
             q.task_done()
 
         # Capture the output
