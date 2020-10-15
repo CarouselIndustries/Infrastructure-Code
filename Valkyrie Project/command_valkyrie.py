@@ -52,6 +52,12 @@ commands = commands_file.read().splitlines()
 commands_nexus_file = open('commands_cisco_nexus.txt', encoding='UTF-8')
 commands_nexus = commands_nexus_file.read().splitlines()
 
+commands_wlc_file = open('commands_cisco_wlc.txt', encoding='UTF-8')
+commands_wlc = commands_wlc_file.read().splitlines()
+
+commands_asa_file = open('commands_cisco_asa.txt', encoding='UTF-8')
+commands_asa = commands_asa_file.read().splitlines()
+
 commands_showtech_file = open('commands_showtech.txt', encoding='UTF-8')
 commands_showtech = commands_showtech_file.read().splitlines()
 
@@ -80,7 +86,8 @@ def deviceconnector(i, q):
     while True:
 
         ip = q.get()
-        print('Th{}/{}: Acquired IP:  {}\n'.format(i+1, threads, ip))
+        with print_lock:
+            print('Th{}/{}: Acquired IP:  {}'.format(i+1, threads, ip))
 
         # device_dict is copied over to net_connect
         device_dict = {
@@ -88,7 +95,9 @@ def deviceconnector(i, q):
             'username': username,
             'password': password,
             'secret': secret,
-            'device_type': 'autodetect'
+            'device_type': 'autodetect',
+            'banner_timeout': 60,
+            'conn_timeout': 60
             # Gather session output logs - TESTING ONLY
             # ,
             # 'session_log': 'session_output.txt'
@@ -99,13 +108,12 @@ def deviceconnector(i, q):
             auto_device_dict = SSHDetect(**device_dict)
             device_os = auto_device_dict.autodetect()
             # Validate device type returned (Testing only)
-            # print('===== ' + device_os + ' =====')
-            # print(auto_device_dict.potential_matches)
+            # print('===== {} =====\n===== {} ====='.format(device_os, auto_device_dict.potential_matches))
 
             # Update device_dict device_type from 'autodetect' to the detected OS
             if device_os is None:
                 print('Th{}/{}: {} returned unsupported device_type of {}\n'.format(i + 1, threads, device_dict['host'],
-                                                                                    device_os))
+                      device_os))
                 device_dict['device_type'] = 'autodetect'
             else:
                 device_dict['device_type'] = device_os
@@ -117,7 +125,6 @@ def deviceconnector(i, q):
             with print_lock:
                 print('Th{}/{}: ERROR: Connection to {} timed-out. \n'.format(i+1, threads, ip))
             q.task_done()
-            continue
         except (NetMikoAuthenticationException, AuthenticationException):
             with print_lock:
                 print('Th{}/{}: ERROR: Authentication failed for {}. Stopping thread. \n'.format(i+1, threads, ip))
@@ -160,6 +167,36 @@ def deviceconnector(i, q):
                     sleep(5)
         elif device_os == 'cisco_nxos':
             for cmd in commands_nexus:
+                try:
+                    if re.match(r'\w', cmd):
+                        output = net_connect.send_command(cmd.strip(), delay_factor=1, max_loops=1000)
+                        write_file(outputfile, prompt, cmd, output)
+                    else:
+                        outputfile.write(prompt + cmd + '\n')
+                except (NetMikoTimeoutException, EOFError, OSError) as e:
+                    exception_logging(e, i, threads, ip, hostname, cmd, prompt, outputfile, errorfile)
+                    net_connect = Netmiko(**device_dict)
+                    sleep(5)
+        elif device_os == 'cisco_wlc':
+            for cmd in commands_wlc:
+                try:
+                    if re.match(r'\w', cmd):
+                        if cmd == 'show run-config':
+                            output = net_connect.send_command_timing(cmd.strip(), delay_factor=1, max_loops=1000)
+                            if 'Press Enter to continue' in output:
+                                output += net_connect.send_command_timing('\n')
+                            write_file(outputfile, prompt, cmd, output)
+                        else:
+                            output = net_connect.send_command(cmd.strip(), delay_factor=1, max_loops=1000)
+                            write_file(outputfile, prompt, cmd, output)
+                    else:
+                        outputfile.write(prompt + cmd + '\n')
+                except (NetMikoTimeoutException, EOFError, OSError) as e:
+                    exception_logging(e, i, threads, ip, hostname, cmd, prompt, outputfile, errorfile)
+                    net_connect = Netmiko(**device_dict)
+                    sleep(5)
+        elif device_os == 'cisco_asa':
+            for cmd in commands_asa:
                 try:
                     if re.match(r'\w', cmd):
                         output = net_connect.send_command(cmd.strip(), delay_factor=1, max_loops=1000)

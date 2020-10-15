@@ -1,0 +1,37 @@
+show sysinfo
+show udi
+show inventory
+show time
+show boot
+
+show interface summary
+show system interfaces
+
+show mobility summary
+
+show wlan summary
+show wlan apgroups
+
+show 802.11b
+show 802.11a
+
+show ap summary
+show ap inventory all
+show rf-profile summary
+
+show flexconnect summary
+show flexconnect group summary
+
+show dhcp summary
+
+show cdp neighbors
+show ap cdp neighbors all
+
+show certificate summary
+show certificate all
+show netuser summary
+show macfilter summary
+
+show tech
+
+show run-config

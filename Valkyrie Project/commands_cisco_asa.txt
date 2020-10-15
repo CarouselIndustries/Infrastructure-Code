@@ -1,0 +1,12 @@
+more system:running-config
+show fail
+show fail hist
+show run
+show ver
+show ntp status
+show int
+show cry isa sa de
+show cry ips sa det
+show cpu usage
+show route
+show log
