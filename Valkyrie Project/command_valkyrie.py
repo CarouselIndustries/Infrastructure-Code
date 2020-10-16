@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # https://github.com/jonviveiros/Infrastructure-Code
 # https://github.com/CarouselIndustries/Infrastructure-Code
+version = 0.45
 
 # DESCRIPTION
 # The goal is to pull output from various SSH devices. Threading and device autodetection
@@ -71,7 +72,7 @@ enclosure_queue = Queue()
 # Set up thread lock so that only one thread prints at a time
 print_lock = threading.Lock()
 
-print('*****\nInitiating Valkyrie process...\n*****')
+print('*****\nInitiating Valkyrie process v{} ...\n*****'.format(version))
 
 # Fun Chuck Norris Joke at completion
 url = 'https://api.chucknorris.io/jokes/random'
