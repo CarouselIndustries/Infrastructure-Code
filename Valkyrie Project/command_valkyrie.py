@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # https://github.com/jonviveiros/Infrastructure-Code
 # https://github.com/CarouselIndustries/Infrastructure-Code
-version = 0.45
+version = 0.46
 
 # DESCRIPTION
 # The goal is to pull output from various SSH devices. Threading and device autodetection
@@ -38,6 +38,8 @@ ip_addrs = []
 # Switch IP addresses from text file that has one IP per line
 # ip_addrs_file = open('ips.txt', encoding='UTF-8')
 # ip_addrs = ip_addrs_file.read().splitlines()
+
+# TODO: Have user specific an IP file, if no file entered assume ips.txt
 
 with open('ips.txt', encoding='UTF-8') as ip_addrs_file:
     for line in ip_addrs_file:
