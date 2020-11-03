@@ -1,2 +1,2 @@
-netmiko==3.3.2
-requests==2.24.0
+netmiko == 3.3.2
+requests == 2.24.0

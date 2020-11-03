@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # https://github.com/jonviveiros/Infrastructure-Code
 # https://github.com/CarouselIndustries/Infrastructure-Code
-version = 0.46
 
 # DESCRIPTION
 # The goal is to pull output from various SSH devices. Threading and device autodetection
@@ -26,6 +25,8 @@ from paramiko.ssh_exception import NoValidConnectionsError, AuthenticationExcept
 from netmiko import Netmiko, NetMikoTimeoutException, NetMikoAuthenticationException
 from netmiko import SSHDetect
 
+version = 0.47
+
 # These capture errors relating to hitting ctrl+C
 signal.signal(signal.SIGINT, signal.SIG_DFL)  # KeyboardInterrupt: Ctrl-C
 
@@ -40,13 +41,21 @@ ip_addrs = []
 # ip_addrs = ip_addrs_file.read().splitlines()
 
 # TODO: Have user specific an IP file, if no file entered assume ips.txt
-
-with open('ips.txt', encoding='UTF-8') as ip_addrs_file:
-    for line in ip_addrs_file:
-        if re.match(r'\d', line[0]):
-            ip_addrs.append(line.strip())
-        else:
-            continue
+ipfile = input('Enter the IP Addresses filename or press [Enter] to use the default of ips.txt: ')
+if ipfile is not None:
+    with open(ipfile, encoding='UTF-8') as ip_addrs_file:
+        for line in ip_addrs_file:
+            if re.match(r'\d', line[0]):
+                ip_addrs.append(line.strip())
+            else:
+                continue
+else:
+    with open('ips.txt', encoding='UTF-8') as ip_addrs_file:
+        for line in ip_addrs_file:
+            if re.match(r'\d', line[0]):
+                ip_addrs.append(line.strip())
+            else:
+                continue
 
 # List of commands to run split by line
 commands_file = open('commands_cisco_ios.txt', encoding='UTF-8')
@@ -123,7 +132,7 @@ def deviceconnector(i, q):
 
             # Connect to the device, and print out auth or timeout errors
             net_connect = Netmiko(**device_dict)
-            print('Th{}/{}: Connecting to: {} ({})'.format(i+1, threads, net_connect.host, device_dict['device_type']))
+            print('Th{}/{}: Connecting to: {} ({})'.format(i+1, threads, net_connect.host, net_connect.device_type))
         except NetMikoTimeoutException:
             with print_lock:
                 print('Th{}/{}: ERROR: Connection to {} timed-out. \n'.format(i+1, threads, ip))
@@ -271,8 +280,8 @@ def main():
     # Wait for all tasks in the queue to be marked as completed (task_done)
     enclosure_queue.join()
     # outputfile.close()
-    print("*****\nCompleting Valkyrie process...\n*****")
-    print(cn_joke['value'])
+    print("*****\nCompleting Valkyrie process ...\n*****")
+    # print(cn_joke['value'])
 
 
 if __name__ == '__main__':
