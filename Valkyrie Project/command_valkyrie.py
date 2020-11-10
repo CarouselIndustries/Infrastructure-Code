@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # https://github.com/jonviveiros/Infrastructure-Code
 # https://github.com/CarouselIndustries/Infrastructure-Code
 
@@ -25,7 +25,7 @@ from paramiko.ssh_exception import NoValidConnectionsError, AuthenticationExcept
 from netmiko import Netmiko, NetMikoTimeoutException, NetMikoAuthenticationException
 from netmiko import SSHDetect
 
-version = 0.47
+version = 0.48
 
 # These capture errors relating to hitting ctrl+C
 signal.signal(signal.SIGINT, signal.SIG_DFL)  # KeyboardInterrupt: Ctrl-C
@@ -40,22 +40,25 @@ ip_addrs = []
 # ip_addrs_file = open('ips.txt', encoding='UTF-8')
 # ip_addrs = ip_addrs_file.read().splitlines()
 
-# TODO: Have user specific an IP file, if no file entered assume ips.txt
 ipfile = input('Enter the IP Addresses filename or press [Enter] to use the default of ips.txt: ')
-if ipfile is not None:
-    with open(ipfile, encoding='UTF-8') as ip_addrs_file:
-        for line in ip_addrs_file:
-            if re.match(r'\d', line[0]):
-                ip_addrs.append(line.strip())
-            else:
-                continue
-else:
+
+# TODO: Perform a check to ensure the file exists
+
+if ipfile is '':
     with open('ips.txt', encoding='UTF-8') as ip_addrs_file:
         for line in ip_addrs_file:
             if re.match(r'\d', line[0]):
                 ip_addrs.append(line.strip())
             else:
                 continue
+else:
+    with open(ipfile, encoding='UTF-8') as ip_addrs_file:
+        for line in ip_addrs_file:
+            if re.match(r'\d', line[0]):
+                ip_addrs.append(line.strip())
+            else:
+                continue
+
 
 # List of commands to run split by line
 commands_file = open('commands_cisco_ios.txt', encoding='UTF-8')
