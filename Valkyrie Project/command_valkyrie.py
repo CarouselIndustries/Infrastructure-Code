@@ -25,7 +25,7 @@ from paramiko.ssh_exception import NoValidConnectionsError, AuthenticationExcept
 from netmiko import Netmiko, NetMikoTimeoutException, NetMikoAuthenticationException
 from netmiko import SSHDetect
 
-version = 0.48
+version = 0.49
 
 # These capture errors relating to hitting ctrl+C
 signal.signal(signal.SIGINT, signal.SIG_DFL)  # KeyboardInterrupt: Ctrl-C
@@ -104,6 +104,9 @@ def deviceconnector(i, q):
         with print_lock:
             print('Th{}/{}: Acquired IP:  {}'.format(i+1, threads, ip))
 
+        #Create an error log file
+        errorfile = open('valkyrie output/valkyrie errors ' + str(date.today()) + '.txt', 'a')
+
         # device_dict is copied over to net_connect
         device_dict = {
             'host': ip,
@@ -139,14 +142,17 @@ def deviceconnector(i, q):
         except NetMikoTimeoutException:
             with print_lock:
                 print('Th{}/{}: ERROR: Connection to {} timed-out. \n'.format(i+1, threads, ip))
+                errorfile.write('[{}] {} ERROR: Connection timed-out. \n'.format(datetime.now().strftime('%H:%M:%S'), ip))
             q.task_done()
         except (NetMikoAuthenticationException, AuthenticationException):
             with print_lock:
                 print('Th{}/{}: ERROR: Authentication failed for {}. Stopping thread. \n'.format(i+1, threads, ip))
+                errorfile.write('[{}] {} ERROR: Authentication failed. \n'.format(datetime.now().strftime('%H:%M:%S'), ip))
             q.task_done()
         except NoValidConnectionsError:
             with print_lock:
                 print('Th{}/{}: ERROR: No Connections available for device {}. \n'.format(i+1, threads, ip))
+                errorfile.write('[{}] {} ERROR: No Connections available. \n'.format(datetime.now().strftime('%H:%M:%S'), ip))
             q.task_done()
 
         # Capture the output
@@ -163,7 +169,6 @@ def deviceconnector(i, q):
         start = datetime.now()
         filename = (hostname + ' ' + ip + ' - valkyrie output {0}.txt')
         outputfile = open('valkyrie output/' + filename.format(timenow), 'w')
-        errorfile = open('valkyrie output/valkyrie errors ' + str(date.today()) + '.txt', 'a')
 
         print('Th{}/{}: Writing file name "{} {} - valkyrie output {}.txt"'.format(
             i+1, threads, hostname, ip, format(timenow)))
