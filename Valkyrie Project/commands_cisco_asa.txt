@@ -10,3 +10,7 @@ show cry ips sa det
 show cpu usage
 show route
 show log
+
+show nat
+show xlate
+dir /recursive
